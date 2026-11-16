@@ -1,12 +1,12 @@
-# Varmilo VA21M: host-controlled NumLock firmware
+# Custom Varmilo VA21M firmware
 
 A patched firmware for the Varmilo VA21M numpad that makes it behave like a regular numeric keypad: NumLock is handled by the computer, not by the keyboard.
 
-> **Unofficial and untested on hardware so far.** This is not a Varmilo release. Flash it at your own risk.
+> **This is not official firmware.** Flash it at your own risk.
 
 ## What it changes
 
-The stock firmware (`ZHH-KB-20161115-BE40H.MTP`, as supplied by Varmilo support) keeps its own NumLock state. The NumLock key only switches between two internal layers (digits and navigation keys) and is never sent to the computer. When the computer has NumLock off, the keyboard presses NumLock by itself before sending a digit. The LED shows the internal layer.
+The stock firmware (`ZHH-KB-20161115-BE40H.MTP`, as supplied by the manufacturer) keeps its own NumLock state. The NumLock key only switches between two internal layers (digits and navigation keys) and is never sent to the computer. When the computer has NumLock off, the keyboard presses NumLock by itself before sending a digit. The LED shows the internal layer.
 
 `VA21M-hostnumlock.MTP` changes that:
 
@@ -15,7 +15,7 @@ The stock firmware (`ZHH-KB-20161115-BE40H.MTP`, as supplied by Varmilo support)
 - The keyboard no longer presses NumLock on its own.
 - The NumLock LED follows the state reported by the computer.
 
-With NumLock off, the computer treats the keys as Home, End, arrows and so on, exactly as it does with any other numpad. Esc, Tab, `=` and Backspace are unchanged.
+With NumLock off, the computer treats the keys as Home, End, arrows and so on, exactly as it does with any other numpad. Esc, Tab, `=` and Backspace keys are unchanged.
 
 ## Files
 
@@ -24,15 +24,30 @@ With NumLock off, the computer treats the keys as Home, End, arrows and so on, e
 | `VA21M-hostnumlock.MTP` | The patched firmware. |
 | `ZHH-KB-20161115-BE40H.MTP` | The original firmware, needed to rebuild the patch or to go back. |
 | `tools/patch_va21m.py` | Produces the patched firmware from the original. |
+| `tools/va21m_flash.py` | Linux flasher (see below). |
 | `tools/ht68dis.py` | Disassembler for the keyboard's Holtek HT68FB560 microcontroller. |
 | `tools/mtp.py` | Reader and writer for the `.MTP` firmware container. |
 | `tests/` | Tests for the tools and the patch. |
 
 ## Flashing
 
-Use Holtek's ISPTool on Windows (Varmilo support can provide it together with the upgrade instructions) and load `VA21M-hostnumlock.MTP` instead of the original file. To go back, flash `ZHH-KB-20161115-BE40H.MTP` the same way.
+Use Holtek's ISPTool on Windows and load `VA21M-hostnumlock.MTP` instead of the original file. To go back, flash the official firmware `ZHH-KB-20161115-BE40H.MTP` in the same way.
 
-The patch does not touch the bootloader, which is the part of the chip that receives new firmware.
+The patch does not touch the bootloader (the part of the chip that receives new firmware).
+
+### From Linux
+
+`tools/va21m_flash.py` talks to the keyboard's bootloader directly through `/dev/hidraw`. It has been used to flash one real VA21M, which is all the testing it has had. It needs read and write access to the keyboard's hidraw devices (run it as root or add a udev rule for USB IDs `04d9:a002` and `04d9:8022`).
+
+```bash
+python3 tools/va21m_flash.py verify ZHH-KB-20161115-BE40H.MTP
+```
+
+```bash
+python3 tools/va21m_flash.py flash VA21M-hostnumlock.MTP
+```
+
+`verify` only compares the keyboard's contents with a file. `flash` erases, programs and verifies, and restarts the keyboard only if the verification passes. While it works the keyboard shows up as USB device `04d9:8022`; `exit` switches it back to normal.
 
 ## Rebuilding
 
